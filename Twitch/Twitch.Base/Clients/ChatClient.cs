@@ -14,6 +14,7 @@ using V5 = Twitch.Base.Models.V5;
 namespace Twitch.Base.Clients
 {
     // Twitch IRC logic from: https://github.com/danefairbanks/TwitchChat/blob/master/TwitchChat/Code/IrcClient.cs
+    // Command documentation: https://github.com/TwitchLib/TwitchLib.Client/tree/1dc45145654ac467a7568c88770c0df258a2bedb/TwitchLib.Client/Extensions
 
     /// <summary>
     /// IRC client for interacting with Chat service.
@@ -233,29 +234,59 @@ namespace Twitch.Base.Clients
         }
 
         /// <summary>
-        /// Clears the specified message.
+        /// Sends a message to the specified broadcaster's channel.
         /// </summary>
-        /// <param name="broadcaster">The broadcaster's channel to use</param>
-        /// <param name="messageID">The ID of the message to clear</param>
+        /// <param name="broadcaster">The broadcaster's channel to send the message to</param>
+        /// <param name="user">The user to whisper</param>
+        /// <param name="message">The message to send</param>
         /// <returns>An awaitable Task</returns>
-        public async Task ClearMessage(NewAPI.Users.UserModel broadcaster, string messageID)
+        public async Task SendWhisperMessage(NewAPI.Users.UserModel broadcaster, NewAPI.Users.UserModel user, string message)
         {
             Validator.ValidateVariable(broadcaster, "broadcaster");
-            Validator.ValidateString(messageID, "messageID");
-            await this.Send(string.Format("CLEARMSG #{0} :{1}", broadcaster.login, messageID));
+            Validator.ValidateVariable(user, "user");
+            Validator.ValidateString(message, "message");
+            await this.Send(string.Format("PRIVMSG #{0} :.w {1} {2}", broadcaster.login, user.login, message));
         }
 
         /// <summary>
-        /// Clears the specified message.
+        /// Sends a message to the specified broadcaster's channel.
+        /// </summary>
+        /// <param name="broadcaster">The broadcaster's channel to send the message to</param>
+        /// <param name="user">The user to whisper</param>
+        /// <param name="message">The message to send</param>
+        /// <returns>An awaitable Task</returns>
+        public async Task SendWhisperMessage(V5.Users.UserModel broadcaster, V5.Users.UserModel user, string message)
+        {
+            Validator.ValidateVariable(broadcaster, "broadcaster");
+            Validator.ValidateVariable(user, "user");
+            Validator.ValidateString(message, "message");
+            await this.Send(string.Format("PRIVMSG #{0} :.w {1} {2}", broadcaster.name, user.name, message));
+        }
+
+        /// <summary>
+        /// Deletes the specified message.
         /// </summary>
         /// <param name="broadcaster">The broadcaster's channel to use</param>
         /// <param name="messageID">The ID of the message to clear</param>
         /// <returns>An awaitable Task</returns>
-        public async Task ClearMessage(V5.Users.UserModel broadcaster, string messageID)
+        public async Task DeleteMessage(NewAPI.Users.UserModel broadcaster, string messageID)
         {
             Validator.ValidateVariable(broadcaster, "broadcaster");
             Validator.ValidateString(messageID, "messageID");
-            await this.Send(string.Format("CLEARMSG #{0} :{1}", broadcaster.name, messageID));
+            await this.Send(string.Format("PRIVMSG #{0} :/delete {1}", broadcaster.login, messageID));
+        }
+
+        /// <summary>
+        /// Deletes the specified message.
+        /// </summary>
+        /// <param name="broadcaster">The broadcaster's channel to use</param>
+        /// <param name="messageID">The ID of the message to clear</param>
+        /// <returns>An awaitable Task</returns>
+        public async Task DeleteMessage(V5.Users.UserModel broadcaster, string messageID)
+        {
+            Validator.ValidateVariable(broadcaster, "broadcaster");
+            Validator.ValidateString(messageID, "messageID");
+            await this.Send(string.Format("PRIVMSG #{0} :/delete {1}", broadcaster.name, messageID));
         }
 
         /// <summary>
@@ -263,12 +294,13 @@ namespace Twitch.Base.Clients
         /// </summary>
         /// <param name="broadcaster">The broadcaster's channel to use</param>
         /// <param name="targetUser">The target user to purge</param>
+        /// <param name="lengthInSeconds">The length in seconds to time out for</param>
         /// <returns>An awaitable Task</returns>
-        public async Task ClearChat(NewAPI.Users.UserModel broadcaster, NewAPI.Users.UserModel targetUser)
+        public async Task TimeoutUser(NewAPI.Users.UserModel broadcaster, NewAPI.Users.UserModel targetUser, int lengthInSeconds)
         {
             Validator.ValidateVariable(broadcaster, "broadcaster");
             Validator.ValidateVariable(targetUser, "targetUser");
-            await this.Send(string.Format("CLEARCHAT #{0} :{1}", broadcaster.login, targetUser.login));
+            await this.Send(string.Format("PRIVMSG #{0} :.timeout {1} {2}", broadcaster.login, targetUser.login, lengthInSeconds));
         }
 
         /// <summary>
@@ -276,12 +308,35 @@ namespace Twitch.Base.Clients
         /// </summary>
         /// <param name="broadcaster">The broadcaster's channel to use</param>
         /// <param name="targetUser">The target user to purge</param>
+        /// <param name="lengthInSeconds">The length in seconds to time out for</param>
         /// <returns>An awaitable Task</returns>
-        public async Task ClearChat(V5.Users.UserModel broadcaster, V5.Users.UserModel targetUser)
+        public async Task TimeoutUser(V5.Users.UserModel broadcaster, V5.Users.UserModel targetUser, int lengthInSeconds)
         {
             Validator.ValidateVariable(broadcaster, "broadcaster");
             Validator.ValidateVariable(targetUser, "targetUser");
-            await this.Send(string.Format("CLEARCHAT #{0} :{1}", broadcaster.name, targetUser.name));
+            await this.Send(string.Format("PRIVMSG #{0} :.timeout {1} {2}", broadcaster.name, targetUser.name, lengthInSeconds));
+        }
+
+        /// <summary>
+        /// Clears all messages from chat.
+        /// </summary>
+        /// <param name="broadcaster">The broadcaster's channel to use</param>
+        /// <returns>An awaitable Task</returns>
+        public async Task ClearChat(NewAPI.Users.UserModel broadcaster)
+        {
+            Validator.ValidateVariable(broadcaster, "broadcaster");
+            await this.Send(string.Format("PRIVMSG #{0} :.clear", broadcaster.login));
+        }
+
+        /// <summary>
+        /// Clears all messages from chat.
+        /// </summary>
+        /// <param name="broadcaster">The broadcaster's channel to use</param>
+        /// <returns>An awaitable Task</returns>
+        public async Task ClearChat(V5.Users.UserModel broadcaster)
+        {
+            Validator.ValidateVariable(broadcaster, "broadcaster");
+            await this.Send(string.Format("PRIVMSG #{0} :.clear", broadcaster.name));
         }
 
         /// <summary>
@@ -294,7 +349,7 @@ namespace Twitch.Base.Clients
         {
             Validator.ValidateVariable(broadcaster, "broadcaster");
             Validator.ValidateVariable(user, "user");
-            await this.Send(string.Format(":jtv MODE #{0} +o {1}", broadcaster.login, user.login));
+            await this.Send(string.Format("PRIVMSG #{0} :.mod {1}", broadcaster.login, user.login));
         }
 
         /// <summary>
@@ -307,7 +362,7 @@ namespace Twitch.Base.Clients
         {
             Validator.ValidateVariable(broadcaster, "broadcaster");
             Validator.ValidateVariable(user, "user");
-            await this.Send(string.Format(":jtv MODE #{0} +o {1}", broadcaster.name, user.name));
+            await this.Send(string.Format("PRIVMSG #{0} :.mod {1}", broadcaster.name, user.name));
         }
 
         /// <summary>
@@ -320,7 +375,7 @@ namespace Twitch.Base.Clients
         {
             Validator.ValidateVariable(broadcaster, "broadcaster");
             Validator.ValidateVariable(user, "user");
-            await this.Send(string.Format(":jtv MODE #{0} -o {1}", broadcaster.login, user.login));
+            await this.Send(string.Format("PRIVMSG #{0} :.unmod {1}", broadcaster.login, user.login));
         }
 
         /// <summary>
@@ -333,7 +388,83 @@ namespace Twitch.Base.Clients
         {
             Validator.ValidateVariable(broadcaster, "broadcaster");
             Validator.ValidateVariable(user, "user");
-            await this.Send(string.Format(":jtv MODE #{0} -o {1}", broadcaster.name, user.name));
+            await this.Send(string.Format("PRIVMSG #{0} :.unmod {1}", broadcaster.name, user.name));
+        }
+
+        /// <summary>
+        /// Bans the specified user in specified broadcaster's channel.
+        /// </summary>
+        /// <param name="broadcaster">The broadcaster's channel</param>
+        /// <param name="user">The user to ban</param>
+        /// <returns>An awaitable Task</returns>
+        public async Task BanUser(NewAPI.Users.UserModel broadcaster, NewAPI.Users.UserModel user)
+        {
+            Validator.ValidateVariable(broadcaster, "broadcaster");
+            Validator.ValidateVariable(user, "user");
+            await this.Send(string.Format("PRIVMSG #{0} :.ban {1}", broadcaster.login, user.login));
+        }
+
+        /// <summary>
+        /// Bans the specified user in specified broadcaster's channel.
+        /// </summary>
+        /// <param name="broadcaster">The broadcaster's channel</param>
+        /// <param name="user">The user to ban</param>
+        /// <returns>An awaitable Task</returns>
+        public async Task BanUser(V5.Users.UserModel broadcaster, V5.Users.UserModel user)
+        {
+            Validator.ValidateVariable(broadcaster, "broadcaster");
+            Validator.ValidateVariable(user, "user");
+            await this.Send(string.Format("PRIVMSG #{0} :.ban {1}", broadcaster.name, user.name));
+        }
+
+        /// <summary>
+        /// Bans the specified user in specified broadcaster's channel.
+        /// </summary>
+        /// <param name="broadcaster">The broadcaster's channel</param>
+        /// <param name="user">The user to ban</param>
+        /// <returns>An awaitable Task</returns>
+        public async Task UnbanUser(NewAPI.Users.UserModel broadcaster, NewAPI.Users.UserModel user)
+        {
+            Validator.ValidateVariable(broadcaster, "broadcaster");
+            Validator.ValidateVariable(user, "user");
+            await this.Send(string.Format("PRIVMSG #{0} :.unban {1}", broadcaster.login, user.login));
+        }
+
+        /// <summary>
+        /// Bans the specified user in specified broadcaster's channel.
+        /// </summary>
+        /// <param name="broadcaster">The broadcaster's channel</param>
+        /// <param name="user">The user to ban</param>
+        /// <returns>An awaitable Task</returns>
+        public async Task UnbanUser(V5.Users.UserModel broadcaster, V5.Users.UserModel user)
+        {
+            Validator.ValidateVariable(broadcaster, "broadcaster");
+            Validator.ValidateVariable(user, "user");
+            await this.Send(string.Format("PRIVMSG #{0} :.unban {1}", broadcaster.name, user.name));
+        }
+
+        /// <summary>
+        /// Runs a commercial for the specified time length in specified broadcaster's channel.
+        /// </summary>
+        /// <param name="broadcaster">The broadcaster's channel</param>
+        /// <param name="lengthInSeconds">The length of the commercial</param>
+        /// <returns>An awaitable Task</returns>
+        public async Task RunCommercial(NewAPI.Users.UserModel broadcaster, int lengthInSeconds)
+        {
+            Validator.ValidateVariable(broadcaster, "broadcaster");
+            await this.Send(string.Format("PRIVMSG #{0} :.commercial {1}", broadcaster.login, lengthInSeconds));
+        }
+
+        /// <summary>
+        /// Runs a commercial for the specified time length in specified broadcaster's channel.
+        /// </summary>
+        /// <param name="broadcaster">The broadcaster's channel</param>
+        /// <param name="lengthInSeconds">The length of the commercial</param>
+        /// <returns>An awaitable Task</returns>
+        public async Task RunCommercial(V5.Users.UserModel broadcaster, int lengthInSeconds)
+        {
+            Validator.ValidateVariable(broadcaster, "broadcaster");
+            await this.Send(string.Format("PRIVMSG #{0} :.commercial {1}", broadcaster.name, lengthInSeconds));
         }
 
         /// <summary>
